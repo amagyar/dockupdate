@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/adev/dockupdate/internal/compose"
-	"github.com/adev/dockupdate/internal/registry"
-	"github.com/adev/dockupdate/internal/updater"
+	"github.com/amagyar/dockupdate/internal/compose"
+	"github.com/amagyar/dockupdate/internal/registry"
+	"github.com/amagyar/dockupdate/internal/updater"
 )
 
 func (m Model) updatesKey(key string) (tea.Model, tea.Cmd) {

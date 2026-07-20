@@ -1,7 +1,7 @@
 package updater
 
 import (
-	"github.com/adev/dockupdate/internal/engine"
+	"github.com/amagyar/dockupdate/internal/engine"
 	"context"
 	"errors"
 	"fmt"

@@ -1,4 +1,4 @@
-module github.com/adev/dockupdate
+module github.com/amagyar/dockupdate
 
 go 1.26.5
 

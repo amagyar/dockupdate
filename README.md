@@ -1,7 +1,7 @@
 # dockupdate
 
-[![CI](https://github.com/adev/dockupdate/actions/workflows/ci.yml/badge.svg)](https://github.com/adev/dockupdate/actions/workflows/ci.yml)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/adev/dockupdate)](https://github.com/adev/dockupdate)
+[![CI](https://github.com/amagyar/dockupdate/actions/workflows/ci.yml/badge.svg)](https://github.com/amagyar/dockupdate/actions/workflows/ci.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/amagyar/dockupdate)](https://github.com/amagyar/dockupdate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9999/badge)](https://www.bestpractices.dev/projects/9999)
 
@@ -33,7 +33,7 @@ A terminal UI for managing containers across **Docker and Podman**: compose-awar
 ### Homebrew
 
 ```sh
-brew install adev/tap/dockupdate
+brew install amagyar/tap/dockupdate
 ```
 
 ### npm
@@ -46,7 +46,7 @@ The npm package downloads the matching binary from GitHub Releases at install ti
 
 ### Binary
 
-Download an archive for your platform from [GitHub Releases](https://github.com/adev/dockupdate/releases), verify it against `checksums.txt`, and place `dockupdate` on your `PATH`.
+Download an archive for your platform from [GitHub Releases](https://github.com/amagyar/dockupdate/releases), verify it against `checksums.txt`, and place `dockupdate` on your `PATH`.
 
 ## Usage
 
@@ -91,7 +91,7 @@ Images built locally (no repo digest), digest-pinned images, and containers mana
 
 Releases are driven by git tags via [goreleaser](.goreleaser.yml) and [.github/workflows/release.yml](.github/workflows/release.yml):
 
-1. Create the repos: `github.com/adev/dockupdate` (code + releases) and `github.com/adev/homebrew-tap` (formula).
+1. Create the repos: `github.com/amagyar/dockupdate` (code + releases) and `github.com/amagyar/homebrew-tap` (formula).
 2. Add repo secrets: `HOMEBREW_TAP_GITHUB_TOKEN` (PAT with write access to homebrew-tap) and `NPM_TOKEN` (npm granular access token).
 3. Tag and push:
 

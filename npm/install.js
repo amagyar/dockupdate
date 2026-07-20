@@ -12,7 +12,7 @@ const tar = require('tar');
 
 const pkg = require('./package.json');
 
-const REPO = 'adev/dockupdate';
+const REPO = 'amagyar/dockupdate';
 const VERSION = process.env.DOCKUPDATE_VERSION || pkg.version;
 const BASE_URL =
   process.env.DOCKUPDATE_BASE_URL ||

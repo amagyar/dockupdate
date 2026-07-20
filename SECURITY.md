@@ -12,7 +12,7 @@ If you discover a security vulnerability in dockupdate, please report it private
 rather than opening a public issue.
 
 - **Email**: allain.magyar@gmail.com
-- **GitHub**: [Report a vulnerability](https://github.com/adev/dockupdate/security/advisories/new)
+- **GitHub**: [Report a vulnerability](https://github.com/amagyar/dockupdate/security/advisories/new)
 
 Please include:
 
