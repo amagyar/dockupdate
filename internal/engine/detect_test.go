@@ -38,7 +38,7 @@ func TestCandidatesEnvPrecedence(t *testing.T) {
 
 func TestCandidatesWellKnownOrder(t *testing.T) {
 	tmp := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(tmp, "podman"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(tmp, "podman"), 0o750); err != nil {
 		t.Fatal(err)
 	}
 	sock := filepath.Join(tmp, "podman", "podman-machine-default-api.sock")

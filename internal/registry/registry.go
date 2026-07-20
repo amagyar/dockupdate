@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	ggcrv1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/google/go-containerregistry/pkg/v1/types"
 )
 
 // Kind classifies the outcome of an update check.
@@ -132,8 +131,6 @@ func (c *Checker) remoteDigests(ctx context.Context, ref name.Reference) (candid
 				candidates = append(candidates, d.String())
 			}
 		}
-	} else if head.MediaType == types.DockerManifestSchema1 {
-		// Legacy schema; nothing more to add.
 	}
 	return candidates, primary, nil
 }
