@@ -16,7 +16,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 
-	"github.com/adev/dockupdate/internal/engine"
+	"github.com/amagyar/dockupdate/internal/engine"
 )
 
 // TestLivePullStreamDebug dumps the raw pull progress messages the engine

@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "Terminal UI to manage Docker/Podman containers and their updates",
   "license": "MIT",
-  "homepage": "https://github.com/adev/dockupdate",
+  "homepage": "https://github.com/amagyar/dockupdate",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adev/dockupdate.git"
+    "url": "git+https://github.com/amagyar/dockupdate.git"
   },
   "bin": {
     "dockupdate": "bin/dockupdate"

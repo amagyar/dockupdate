@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adev/dockupdate/internal/tui"
+	"github.com/amagyar/dockupdate/internal/tui"
 )
 
 // version is injected at link time via -ldflags "-X main.version=...".
