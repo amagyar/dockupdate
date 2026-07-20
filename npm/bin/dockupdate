@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+// Shim: forwards to the platform binary downloaded by install.js.
+const { spawnSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+const bin = path.join(
+  __dirname,
+  process.platform === 'win32' ? 'dockupdate.exe' : 'dockupdate-bin'
+);
+
+if (!fs.existsSync(bin)) {
+  console.error(
+    'dockupdate: binary not found. The postinstall download may have failed;\n' +
+    'try reinstalling: npm install -g dockupdate'
+  );
+  process.exit(1);
+}
+
+const r = spawnSync(bin, process.argv.slice(2), { stdio: 'inherit' });
+if (r.error) {
+  console.error('dockupdate: failed to start: ' + r.error.message);
+  process.exit(1);
+}
+process.exit(r.status === null ? 1 : r.status);
