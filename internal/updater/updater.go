@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adev/dockupdate/internal/engine"
+	"github.com/amagyar/dockupdate/internal/engine"
 )
 
 // Phase is a task's position in the update pipeline.

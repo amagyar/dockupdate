@@ -9,9 +9,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/adev/dockupdate/internal/engine"
-	"github.com/adev/dockupdate/internal/registry"
-	"github.com/adev/dockupdate/internal/updater"
+	"github.com/amagyar/dockupdate/internal/engine"
+	"github.com/amagyar/dockupdate/internal/registry"
+	"github.com/amagyar/dockupdate/internal/updater"
 )
 
 // fakeEngine implements engineAPI for TUI tests.

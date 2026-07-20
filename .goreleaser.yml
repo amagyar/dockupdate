@@ -31,11 +31,11 @@ checksum:
 brews:
   - name: dockupdate
     repository:
-      owner: adev
+      owner: amagyar
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
-    homepage: https://github.com/adev/dockupdate
+    homepage: https://github.com/amagyar/dockupdate
     description: "Terminal UI to manage Docker/Podman containers and their updates"
     license: MIT
     install: |
@@ -45,7 +45,7 @@ brews:
 
 release:
   github:
-    owner: adev
+    owner: amagyar
     name: dockupdate
 
 snapshot:

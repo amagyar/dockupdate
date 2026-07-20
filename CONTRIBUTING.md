@@ -27,7 +27,7 @@ See the [Development](README.md#development) section for more details.
 
 ## Reporting Bugs
 
-Open an issue on [GitHub Issues](https://github.com/adev/dockupdate/issues) with:
+Open an issue on [GitHub Issues](https://github.com/amagyar/dockupdate/issues) with:
 
 - `dockupdate --version` output
 - Operating system and arch
@@ -37,5 +37,5 @@ Open an issue on [GitHub Issues](https://github.com/adev/dockupdate/issues) with
 
 ## Feature Requests
 
-Open a [GitHub Issue](https://github.com/adev/dockupdate/issues) and describe the use case —
+Open a [GitHub Issue](https://github.com/amagyar/dockupdate/issues) and describe the use case —
 what problem would this feature solve for you?

@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/adev/dockupdate/internal/engine"
+	"github.com/amagyar/dockupdate/internal/engine"
 )
 
 func (m *Model) clampNetCursor() {

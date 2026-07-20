@@ -7,8 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/adev/dockupdate/internal/engine"
-	"github.com/adev/dockupdate/internal/registry"
+	"github.com/amagyar/dockupdate/internal/engine"
+	"github.com/amagyar/dockupdate/internal/registry"
 )
 
 // projectGroup is a collapsible compose project (or the Standalone group).
