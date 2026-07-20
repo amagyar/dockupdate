@@ -1,0 +1,52 @@
+version: 2
+
+project_name: dockupdate
+
+builds:
+  - id: dockupdate
+    main: ./cmd/dockupdate
+    binary: dockupdate
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - id: dockupdate
+    # tar.gz everywhere (including windows) so the npm installer needs only tar.
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+brews:
+  - name: dockupdate
+    repository:
+      owner: adev
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/adev/dockupdate
+    description: "Terminal UI to manage Docker/Podman containers and their updates"
+    license: MIT
+    install: |
+      bin.install "dockupdate"
+    test: |
+      system "#{bin}/dockupdate --version"
+
+release:
+  github:
+    owner: adev
+    name: dockupdate
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot"
