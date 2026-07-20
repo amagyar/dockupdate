@@ -33,7 +33,7 @@ var candidates = []struct {
 
 // execCommand is replaceable in tests.
 var execCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
-	return exec.CommandContext(ctx, name, args...)
+	return exec.CommandContext(ctx, name, args...) // #nosec G204 -- name is a provider binary from a fixed candidate list, resolved via LookPath
 }
 
 var lookPath = exec.LookPath

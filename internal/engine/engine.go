@@ -31,7 +31,7 @@ var PingFunc = func(ctx context.Context, host string) error {
 	if err != nil {
 		return err
 	}
-	defer cli.Close()
+	defer func() { _ = cli.Close() }()
 	_, err = cli.Ping(ctx)
 	return err
 }
@@ -53,7 +53,7 @@ func Connect(ctx context.Context, e Environment) (*Client, []string, error) {
 		}
 		c := &Client{cli: cli, socket: host}
 		if err := c.loadInfo(ctx); err != nil {
-			cli.Close()
+			_ = cli.Close()
 			return nil, candidates, err
 		}
 		return c, candidates, nil
@@ -190,7 +190,7 @@ func (c *Client) PullImage(ctx context.Context, ref string, auth string, progres
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 
 	agg := NewLayerAggregator()
 	dec := json.NewDecoder(rc)

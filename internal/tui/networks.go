@@ -86,7 +86,7 @@ func (m Model) networkDetailView(n engine.Network) string {
 		if ip == "" {
 			ip = "-"
 		}
-		b.WriteString(fmt.Sprintf("%-24s %-18s %s\n", truncate(c.Name, 24), ip, project))
+		fmt.Fprintf(&b, "%-24s %-18s %s\n", truncate(c.Name, 24), ip, project)
 	}
 	return b.String()
 }

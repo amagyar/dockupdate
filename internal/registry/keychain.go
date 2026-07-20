@@ -51,7 +51,7 @@ type authFile struct {
 }
 
 func readAuthFile(path, registry string) authn.Authenticator {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is a well-known user auth config location (docker config.json / podman auth.json)
 	if err != nil {
 		return nil
 	}
