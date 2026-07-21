@@ -18,10 +18,8 @@ jobs:
       - name: Check required secrets
         env:
           TAP: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
-          NPM: ${{ secrets.NPM_TOKEN }}
         run: |
           [ -n "$TAP" ] || { echo "::error::missing secret HOMEBREW_TAP_GITHUB_TOKEN (needed to push the brew formula)"; exit 1; }
-          [ -n "$NPM" ] || { echo "::error::missing secret NPM_TOKEN (needed to publish the npm package)"; exit 1; }
 
   goreleaser:
     needs: preflight
@@ -51,6 +49,9 @@ jobs:
   npm:
     needs: goreleaser
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC for npm trusted publishing (no long-lived token)
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
@@ -59,13 +60,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
+      - name: Upgrade npm CLI for trusted publishing
+        run: npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
       - name: Sync package version with tag and publish
         working-directory: npm
         run: |
           npm version --no-git-tag-version "${GITHUB_REF_NAME#v}"
           npm install --package-lock-only
           npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
