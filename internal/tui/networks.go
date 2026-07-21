@@ -16,14 +16,27 @@ func (m *Model) clampNetCursor() {
 	if m.netDetail >= len(m.networks) {
 		m.netDetail = -1
 	}
+	m.ensureNetVisible()
 }
 
 func (m Model) networksKey(key string) (tea.Model, tea.Cmd) {
-	// Detail mode: only esc/back navigates out.
+	// Detail mode: up/down/pgup/pgdn scroll the container list, esc goes back.
 	if m.netDetail >= 0 {
-		if key == "esc" {
+		page := m.contentRows() - 3
+		switch key {
+		case "esc":
 			m.netDetail = -1
+			m.netDetOffset = 0
+		case "up", "k":
+			m.netDetOffset--
+		case "down", "j":
+			m.netDetOffset++
+		case "pgup":
+			m.netDetOffset -= page
+		case "pgdown":
+			m.netDetOffset += page
 		}
+		m.clampNetDetailOffset()
 		return m, nil
 	}
 	switch key {
@@ -35,11 +48,17 @@ func (m Model) networksKey(key string) (tea.Model, tea.Cmd) {
 		if m.netCursor < len(m.networks)-1 {
 			m.netCursor++
 		}
+	case "pgup":
+		m.netCursor = max(0, m.netCursor-m.contentRows())
+	case "pgdown":
+		m.netCursor = min(max(0, len(m.networks)-1), m.netCursor+m.contentRows())
 	case "enter":
 		if m.netCursor < len(m.networks) {
 			m.netDetail = m.netCursor
+			m.netDetOffset = 0
 		}
 	}
+	m.ensureNetVisible()
 	return m, nil
 }
 
@@ -54,7 +73,9 @@ func (m Model) networksView() string {
 	var b strings.Builder
 	header := fmt.Sprintf("%-20s %-10s %-18s %s", "NAME", "DRIVER", "SUBNET", "CONTAINERS")
 	b.WriteString(styleDim.Render(header) + "\n")
-	for i, n := range m.networks {
+	end := min(len(m.networks), m.netOffset+m.contentRows()-1)
+	for i := m.netOffset; i < end; i++ {
+		n := m.networks[i]
 		subnet := n.Subnet
 		if subnet == "" {
 			subnet = "-"
@@ -77,7 +98,9 @@ func (m Model) networkDetailView(n engine.Network) string {
 	}
 	header := fmt.Sprintf("%-24s %-18s %s", "CONTAINER", "IPv4", "PROJECT")
 	b.WriteString(styleDim.Render(header) + "\n")
-	for _, c := range n.Containers {
+	start := min(m.netDetOffset, max(0, len(n.Containers)-1))
+	end := min(len(n.Containers), start+max(1, m.contentRows()-3))
+	for _, c := range n.Containers[start:end] {
 		project := c.Project
 		if project == "" {
 			project = "standalone"

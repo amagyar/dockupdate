@@ -24,6 +24,10 @@ func (m Model) updatesKey(key string) (tea.Model, tea.Cmd) {
 		if m.updCursor < len(m.updRows)-1 {
 			m.updCursor++
 		}
+	case "pgup":
+		m.updCursor = max(0, m.updCursor-m.updVisibleRows())
+	case "pgdown":
+		m.updCursor = min(max(0, len(m.updRows)-1), m.updCursor+m.updVisibleRows())
 	case " ":
 		if m.updCursor < len(m.updRows) {
 			r := m.updRows[m.updCursor]
@@ -51,7 +55,23 @@ func (m Model) updatesKey(key string) (tea.Model, tea.Cmd) {
 	case "enter":
 		return m.applySelectedUpdates()
 	}
+	m.ensureUpdVisible()
 	return m, nil
+}
+
+// updVisibleRows is the number of update rows that fit in the content area,
+// reserving two lines for the "not updatable" section header when it exists.
+func (m Model) updVisibleRows() int {
+	for _, r := range m.updRows {
+		if r.note != "" {
+			return max(1, m.contentRows()-2)
+		}
+	}
+	return m.contentRows()
+}
+
+func (m *Model) ensureUpdVisible() {
+	m.updOffset = scrollWindow(m.updCursor, m.updOffset, len(m.updRows), m.updVisibleRows())
 }
 
 // selectable reports whether a row can be checked for update.
@@ -109,7 +129,9 @@ func (m Model) applySelectedUpdates() (tea.Model, tea.Cmd) {
 	return m, waitUpdateEvent(m.updEvents)
 }
 
-// updatesView renders the checkbox list with one-line statuses.
+// updatesView renders the checkbox list with one-line statuses, windowed to
+// the visible area. The "not updatable" header renders at the first note row
+// in view and costs two lines of the budget.
 func (m Model) updatesView() string {
 	if len(m.containers) == 0 {
 		return styleDim.Render("no containers found") + "\n" + styleDim.Render("press r to refresh")
@@ -118,17 +140,25 @@ func (m Model) updatesView() string {
 		return styleGood.Render("✔ everything is up to date")
 	}
 	var b strings.Builder
-	otherHeader := false
-	for i, r := range m.updRows {
-		if r.note != "" && !otherHeader {
-			otherHeader = true
+	headerPending := true
+	lines := 0
+	visible := m.contentRows()
+	for i := m.updOffset; i < len(m.updRows) && lines < visible; i++ {
+		r := m.updRows[i]
+		if r.note != "" && headerPending {
+			if lines+3 > visible {
+				break // don't orphan the header at the bottom edge
+			}
 			b.WriteString("\n" + styleDim.Render("not updatable:") + "\n")
+			lines += 2
+			headerPending = false
 		}
 		line := m.renderUpdateRow(r)
 		if i == m.updCursor {
 			line = styleSelected.Render(line)
 		}
 		b.WriteString(line + "\n")
+		lines++
 	}
 	return b.String()
 }
