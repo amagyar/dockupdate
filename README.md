@@ -93,14 +93,15 @@ Images built locally (no repo digest), digest-pinned images, and containers mana
 Releases are driven by git tags via [goreleaser](.goreleaser.yml) and [.github/workflows/release.yml](.github/workflows/release.yml):
 
 1. Create the repos: `github.com/amagyar/dockupdate` (code + releases) and `github.com/amagyar/homebrew-tap` (formula).
-2. Add repo secrets: `HOMEBREW_TAP_GITHUB_TOKEN` (PAT with write access to homebrew-tap) and `NPM_TOKEN` (npm granular access token).
-3. Tag and push:
+2. Add the repo secret `HOMEBREW_TAP_GITHUB_TOKEN` (PAT with write access to homebrew-tap).
+3. On npmjs.com, add a **Trusted Publisher** (GitHub Actions) for the package: org/user `amagyar`, repository `dockupdate`, workflow `release.yml`. No npm token is stored anywhere; publishing uses OIDC and generates provenance attestations automatically.
+4. Tag and push:
 
 ```sh
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-The workflow fails fast with a clear message if a secret is missing, then publishes GitHub Releases binaries, the Homebrew formula, and the npm package.
+The workflow fails fast with a clear message if the secret is missing, then publishes GitHub Releases binaries, the Homebrew formula, and the npm package.
 
 ## Development
 
