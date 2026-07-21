@@ -67,6 +67,6 @@ jobs:
       - name: Sync package version with tag and publish
         working-directory: npm
         run: |
-          npm version --no-git-tag-version "${GITHUB_REF_NAME#v}"
-          npm install --package-lock-only
+          npm version --no-git-tag-version --ignore-scripts "${GITHUB_REF_NAME#v}"
+          npm install --package-lock-only --ignore-scripts
           npm publish
