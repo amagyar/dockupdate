@@ -71,6 +71,7 @@ dockupdate --version
 | --- | --- |
 | `tab` / `shift+tab`, `1` `2` `3` | Switch tabs |
 | `↑`/`↓` or `j`/`k` | Move |
+| `pgup`/`pgdn` | Move a page up/down |
 | `enter` | Collapse/expand group · open network · apply selected updates |
 | `space` | Toggle update checkbox |
 | `a` | Select/deselect all updates |

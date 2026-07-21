@@ -75,14 +75,18 @@ type Model struct {
 	groups    []*projectGroup
 	svcRows   []svcRow
 	svcCursor int
+	svcOffset int
 
 	// networks tab
-	netCursor int
-	netDetail int // -1: list mode; otherwise index into networks
+	netCursor    int
+	netOffset    int
+	netDetail    int // -1: list mode; otherwise index into networks
+	netDetOffset int
 
 	// updates tab
 	updRows    []*updateRow
 	updCursor  int
+	updOffset  int
 	inFlight   int
 	updEvents  chan updater.Event
 	updRunning bool
@@ -206,6 +210,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		m.ensureSvcVisible()
+		m.ensureNetVisible()
+		m.ensureUpdVisible()
+		m.clampNetDetailOffset()
 		return m, nil
 
 	case spinner.TickMsg:
@@ -242,6 +250,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err == nil {
 			m.networks = msg.networks
 			m.clampNetCursor()
+			m.clampNetDetailOffset()
 		}
 		return m, nil
 
@@ -462,6 +471,49 @@ func (m *Model) clampUpdCursor() {
 	if m.updCursor < 0 {
 		m.updCursor = 0
 	}
+	m.ensureUpdVisible()
+}
+
+// scrollWindow returns the scroll offset that keeps cursor inside a window
+// of `visible` rows over `total` rows.
+func scrollWindow(cursor, offset, total, visible int) int {
+	visible = max(1, visible)
+	if cursor < offset {
+		offset = cursor
+	}
+	if cursor >= offset+visible {
+		offset = cursor - visible + 1
+	}
+	return clampOffset(offset, total, visible)
+}
+
+// clampOffset keeps a scroll offset within [0, total-visible].
+func clampOffset(offset, total, visible int) int {
+	visible = max(1, visible)
+	if offset > total-visible {
+		offset = max(0, total-visible)
+	}
+	return max(0, offset)
+}
+
+func (m *Model) ensureSvcVisible() {
+	m.svcOffset = scrollWindow(m.svcCursor, m.svcOffset, len(m.svcRows), m.contentRows())
+}
+
+func (m *Model) ensureNetVisible() {
+	// The list view renders a one-line column header above the rows.
+	m.netOffset = scrollWindow(m.netCursor, m.netOffset, len(m.networks), m.contentRows()-1)
+}
+
+// clampNetDetailOffset keeps the network detail scroll within bounds; the
+// detail view has no cursor, only a scroll offset.
+func (m *Model) clampNetDetailOffset() {
+	if m.netDetail < 0 || m.netDetail >= len(m.networks) {
+		m.netDetOffset = 0
+		return
+	}
+	// Title, blank line and column header sit above the rows.
+	m.netDetOffset = clampOffset(m.netDetOffset, len(m.networks[m.netDetail].Containers), m.contentRows()-3)
 }
 
 // Connected reports whether the engine is connected.

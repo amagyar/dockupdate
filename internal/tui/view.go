@@ -39,10 +39,18 @@ func (m Model) View() string {
 	}
 
 	// Fill the content area so the footer pins to the bottom.
-	contentHeight := m.height - lipgloss.Height(header) - lipgloss.Height(tabs) - lipgloss.Height(footer)
-	content = lipgloss.NewStyle().Height(max(0, contentHeight)).Render(content)
+	content = strings.TrimRight(content, "\n")
+	content = lipgloss.NewStyle().Height(m.contentRows()).Render(content)
 
 	return lipgloss.JoinVertical(lipgloss.Left, header, tabs, content, footer)
+}
+
+// contentRows returns the number of content lines available between the tab
+// bar and the footer, measuring the real rendered heights (the tab bar is
+// two lines tall: the active tab has a bottom border).
+func (m Model) contentRows() int {
+	overhead := lipgloss.Height(m.headerView()) + lipgloss.Height(m.tabBarView()) + lipgloss.Height(m.footerView())
+	return max(1, m.height-overhead)
 }
 
 func (m Model) headerView() string {
@@ -101,18 +109,18 @@ func (m Model) footerView() string {
 	var keys []string
 	switch m.active {
 	case TabServices:
-		keys = []string{"↑/↓ move", "enter collapse/expand", "r refresh"}
+		keys = []string{"↑/↓/pg move", "enter collapse/expand", "r refresh"}
 	case TabNetworks:
 		if m.netDetail >= 0 {
-			keys = []string{"esc back", "r refresh"}
+			keys = []string{"↑/↓/pg scroll", "esc back", "r refresh"}
 		} else {
-			keys = []string{"↑/↓ move", "enter open", "r refresh"}
+			keys = []string{"↑/↓/pg move", "enter open", "r refresh"}
 		}
 	case TabUpdates:
 		if m.updRunning {
 			keys = []string{"updates running…", "r refresh"}
 		} else {
-			keys = []string{"↑/↓ move", "space select", "a all", "enter apply", "r refresh"}
+			keys = []string{"↑/↓/pg move", "space select", "a all", "enter apply", "r refresh"}
 		}
 	}
 	keys = append(keys, "tab/1-3 switch", "q quit")

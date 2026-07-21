@@ -147,6 +147,7 @@ func (m *Model) rebuildSvcRows() {
 	if m.svcCursor >= len(m.svcRows) {
 		m.svcCursor = max(0, len(m.svcRows)-1)
 	}
+	m.ensureSvcVisible()
 }
 
 func (m Model) servicesKey(key string) (tea.Model, tea.Cmd) {
@@ -159,6 +160,10 @@ func (m Model) servicesKey(key string) (tea.Model, tea.Cmd) {
 		if m.svcCursor < len(m.svcRows)-1 {
 			m.svcCursor++
 		}
+	case "pgup":
+		m.svcCursor = max(0, m.svcCursor-m.contentRows())
+	case "pgdown":
+		m.svcCursor = min(max(0, len(m.svcRows)-1), m.svcCursor+m.contentRows())
 	case "enter":
 		if m.svcCursor < len(m.svcRows) {
 			row := m.svcRows[m.svcCursor]
@@ -168,17 +173,19 @@ func (m Model) servicesKey(key string) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
+	m.ensureSvcVisible()
 	return m, nil
 }
 
-// servicesView renders the collapsible tree.
+// servicesView renders the collapsible tree, windowed to the visible area.
 func (m Model) servicesView() string {
 	if len(m.containers) == 0 {
 		return styleDim.Render("no containers found") + "\n" + styleDim.Render("press r to refresh")
 	}
 	var b strings.Builder
-	for i, row := range m.svcRows {
-		line := m.renderSvcRow(row)
+	end := min(len(m.svcRows), m.svcOffset+m.contentRows())
+	for i := m.svcOffset; i < end; i++ {
+		line := m.renderSvcRow(m.svcRows[i])
 		if i == m.svcCursor {
 			line = styleSelected.Render(line)
 		}
