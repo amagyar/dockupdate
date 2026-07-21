@@ -1,6 +1,6 @@
 {
   "name": "dockupdate",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Terminal UI to manage Docker/Podman containers and their updates",
   "license": "MIT",
   "homepage": "https://github.com/amagyar/dockupdate",

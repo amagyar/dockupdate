@@ -28,20 +28,23 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
-brews:
+homebrew_casks:
   - name: dockupdate
     repository:
       owner: amagyar
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
     homepage: https://github.com/amagyar/dockupdate
     description: "Terminal UI to manage Docker/Podman containers and their updates"
     license: MIT
-    install: |
-      bin.install "dockupdate"
-    test: |
-      system "#{bin}/dockupdate --version"
+    url:
+      verified: github.com/amagyar/dockupdate
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/dockupdate"]
+          end
 
 release:
   github:
