@@ -10,13 +10,13 @@ A terminal UI for managing containers across **Docker and Podman**: compose-awar
 ```
 ┌ dockupdate ─ Podman 6.0.1 · unix://…/podman-machine-default-api.sock ── 2 updates ┐
 │ [1 Services]  [2 Networks]  [3 Updates]                                           │
-│                                                                                    │
+│                                                                                   │
 │ [x] web    nginx:1.25     ⠋ pulling  ████████░░░░░░ 45%  45MB/100MB               │
 │ [x] cache  redis:7.2      ⠋ verifying checksum…                                   │
 │ [ ] db     postgres:16    update available                                        │
-│                                                                                    │
-│ tab/1-3 switch · r refresh · space select · enter apply · q quit                   │
-└────────────────────────────────────────────────────────────────────────────────────┘
+│                                                                                   │
+│ tab/1-3 switch · r refresh · space select · enter apply · q quit                  │
+└───────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Features
@@ -33,7 +33,7 @@ A terminal UI for managing containers across **Docker and Podman**: compose-awar
 ### Homebrew
 
 ```sh
-brew install amagyar/tap/dockupdate
+brew install dockupdate
 ```
 
 ### npm
