@@ -1,5 +1,5 @@
 /dist/
-/dockupdate
+/dockupdate*
 npm/node_modules/
 npm/bin/dockupdate-bin
 npm/bin/dockupdate.exe

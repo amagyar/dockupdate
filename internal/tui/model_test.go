@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -80,6 +81,10 @@ func key(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyUp}
 	case "down":
 		return tea.KeyMsg{Type: tea.KeyDown}
+	case "pgup":
+		return tea.KeyMsg{Type: tea.KeyPgUp}
+	case "pgdown":
+		return tea.KeyMsg{Type: tea.KeyPgDown}
 	case "ctrl+c":
 		return tea.KeyMsg{Type: tea.KeyCtrlC}
 	case " ":
@@ -486,5 +491,231 @@ func TestManualRefreshRechecks(t *testing.T) {
 	m = nm.(Model)
 	if !m.updRows[0].checking || m.updRows[0].result.Kind == registry.KindUpToDate {
 		t.Fatal("r must reset updatable rows to checking state")
+	}
+}
+
+func standaloneContainers(n int) []engine.Container {
+	cs := make([]engine.Container, 0, n)
+	for i := 0; i < n; i++ {
+		id := fmt.Sprintf("%02d", i)
+		cs = append(cs, engine.Container{
+			ID: "c" + id, Name: "ct" + id, Image: "app:" + id,
+			ImageID: "img-c" + id, State: "running", Labels: map[string]string{},
+		})
+	}
+	return cs
+}
+
+func stoppedContainers(n int) []engine.Container {
+	cs := make([]engine.Container, 0, n)
+	for i := 0; i < n; i++ {
+		id := fmt.Sprintf("%02d", i)
+		cs = append(cs, engine.Container{
+			ID: "s" + id, Name: "st" + id, Image: "old:" + id,
+			ImageID: "img-s" + id, State: "exited", Labels: map[string]string{},
+		})
+	}
+	return cs
+}
+
+func sizedHeight(t *testing.T, m Model, height int) Model {
+	t.Helper()
+	nm, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: height})
+	return nm.(Model)
+}
+
+func TestServicesScrollWindow(t *testing.T) {
+	m := sizedHeight(t, New(Options{Version: "test"}), 12)
+	m.containers = standaloneContainers(30)
+	m.rebuildGroups()
+	page := m.contentRows() // height minus header(1) + tabs(2) + footer(1)
+
+	if got := len(m.svcRows); got != 31 { // Standalone header + 30 containers
+		t.Fatalf("rows = %d, want 31", got)
+	}
+	if m.svcOffset != 0 {
+		t.Fatalf("initial offset = %d", m.svcOffset)
+	}
+
+	// Move to the last row: the window must follow the cursor.
+	for i := 0; i < 30; i++ {
+		nm, _ := m.Update(key("down"))
+		m = nm.(Model)
+	}
+	if m.svcCursor != 30 {
+		t.Fatalf("cursor = %d, want 30", m.svcCursor)
+	}
+	if want := 30 - page + 1; m.svcOffset != want {
+		t.Fatalf("offset = %d, want %d", m.svcOffset, want)
+	}
+
+	view := m.servicesView()
+	if !strings.Contains(view, "ct29") {
+		t.Fatalf("cursor row must be visible: %q", view)
+	}
+	if strings.Contains(view, "ct00") {
+		t.Fatalf("first row must have scrolled out: %q", view)
+	}
+	if n := strings.Count(view, "\n"); n != page {
+		t.Fatalf("rendered lines = %d, want %d", n, page)
+	}
+
+	// Scrolling back up returns the window to the top.
+	for i := 0; i < 30; i++ {
+		nm, _ := m.Update(key("up"))
+		m = nm.(Model)
+	}
+	if m.svcOffset != 0 {
+		t.Fatalf("offset after scrolling to top = %d", m.svcOffset)
+	}
+}
+
+func TestServicesScrollPgUpPgDn(t *testing.T) {
+	m := sizedHeight(t, New(Options{Version: "test"}), 12)
+	m.containers = standaloneContainers(30)
+	m.rebuildGroups()
+	page := m.contentRows()
+
+	press := func(k string) {
+		nm, _ := m.Update(key(k))
+		m = nm.(Model)
+	}
+
+	press("pgdown") // one page = contentRows
+	if m.svcCursor != page {
+		t.Fatalf("cursor after pgdown = %d, want %d", m.svcCursor, page)
+	}
+	press("pgdown")
+	press("pgdown")
+	press("pgdown") // clamps at the last row
+	if m.svcCursor != 30 {
+		t.Fatalf("cursor after 4xpgdown = %d, want 30", m.svcCursor)
+	}
+	if want := 30 - page + 1; m.svcOffset != want {
+		t.Fatalf("offset = %d, want %d", m.svcOffset, want)
+	}
+	press("pgup")
+	if want := 30 - page; m.svcCursor != want {
+		t.Fatalf("cursor after pgup = %d, want %d", m.svcCursor, want)
+	}
+	if m.svcOffset > m.svcCursor {
+		t.Fatalf("cursor %d must be inside the window (offset %d)", m.svcCursor, m.svcOffset)
+	}
+}
+
+func TestNetworksScrollWindow(t *testing.T) {
+	m := sizedHeight(t, New(Options{Version: "test"}), 12)
+	nets := make([]engine.Network, 0, 30)
+	for i := 0; i < 30; i++ {
+		nets = append(nets, engine.Network{Name: fmt.Sprintf("net%02d", i), Driver: "bridge"})
+	}
+	nm, _ := m.Update(networksMsg{networks: nets})
+	m = nm.(Model)
+	m.active = TabNetworks
+	visible := m.contentRows() - 1 // column header line
+
+	for i := 0; i < 20; i++ {
+		nm, _ = m.Update(key("down"))
+		m = nm.(Model)
+	}
+	if m.netCursor != 20 {
+		t.Fatalf("cursor = %d, want 20", m.netCursor)
+	}
+	if want := 20 - visible + 1; m.netOffset != want {
+		t.Fatalf("offset = %d, want %d", m.netOffset, want)
+	}
+
+	view := m.networksView()
+	if !strings.Contains(view, "net20") {
+		t.Fatalf("cursor row must be visible: %q", view)
+	}
+	if strings.Contains(view, "net00") {
+		t.Fatalf("first row must have scrolled out: %q", view)
+	}
+	if n := strings.Count(view, "\n"); n != m.contentRows() { // header + rows
+		t.Fatalf("rendered lines = %d, want %d", n, m.contentRows())
+	}
+}
+
+func TestNetworkDetailScroll(t *testing.T) {
+	m := sizedHeight(t, New(Options{Version: "test"}), 12)
+	containers := make([]engine.NetworkContainer, 0, 30)
+	for i := 0; i < 30; i++ {
+		containers = append(containers, engine.NetworkContainer{
+			ID: fmt.Sprintf("dc%02d", i), Name: fmt.Sprintf("dc%02d", i), IPv4: "10.0.0.2",
+		})
+	}
+	nm, _ := m.Update(networksMsg{networks: []engine.Network{
+		{Name: "main", Driver: "bridge", Containers: containers},
+	}})
+	m = nm.(Model)
+	m.active = TabNetworks
+
+	nm, _ = m.Update(key("enter"))
+	m = nm.(Model)
+	if m.netDetail != 0 {
+		t.Fatalf("netDetail = %d", m.netDetail)
+	}
+	if !strings.Contains(m.networksView(), "dc00") {
+		t.Fatalf("initial detail must show the first container: %q", m.networksView())
+	}
+
+	visible := m.contentRows() - 3 // title, blank line, column header
+	nm, _ = m.Update(key("pgdown"))
+	m = nm.(Model)
+	if m.netDetOffset != visible {
+		t.Fatalf("detail offset after pgdown = %d, want %d", m.netDetOffset, visible)
+	}
+	view := m.networksView()
+	first := fmt.Sprintf("dc%02d", visible)
+	if !strings.Contains(view, first) {
+		t.Fatalf("scrolled detail must show %s: %q", first, view)
+	}
+	if strings.Contains(view, "dc00") {
+		t.Fatalf("dc00 must have scrolled out: %q", view)
+	}
+
+	// esc returns to the list and resets the scroll.
+	nm, _ = m.Update(key("esc"))
+	m = nm.(Model)
+	if m.netDetail != -1 || m.netDetOffset != 0 {
+		t.Fatalf("esc must reset detail: detail=%d offset=%d", m.netDetail, m.netDetOffset)
+	}
+}
+
+func TestUpdatesScrollWindow(t *testing.T) {
+	m := sizedHeight(t, New(Options{Version: "test"}), 12)
+	m.containers = append(standaloneContainers(25), stoppedContainers(5)...)
+	m.rebuildUpdateRows()
+	m.active = TabUpdates
+	visible := m.contentRows() - 2 // "not updatable" section header
+
+	if got := len(m.updRows); got != 30 {
+		t.Fatalf("rows = %d, want 30", got)
+	}
+	// Move to the last row (inside the "not updatable" section).
+	for i := 0; i < 29; i++ {
+		nm, _ := m.Update(key("down"))
+		m = nm.(Model)
+	}
+	if m.updCursor != 29 {
+		t.Fatalf("cursor = %d, want 29", m.updCursor)
+	}
+	if want := 29 - visible + 1; m.updOffset != want {
+		t.Fatalf("offset = %d, want %d", m.updOffset, want)
+	}
+
+	view := m.updatesView()
+	if !strings.Contains(view, "st04") {
+		t.Fatalf("cursor row must be visible: %q", view)
+	}
+	if !strings.Contains(view, "not updatable:") {
+		t.Fatalf("section header missing: %q", view)
+	}
+	if strings.Contains(view, "ct00") {
+		t.Fatalf("first row must have scrolled out: %q", view)
+	}
+	if n := strings.Count(view, "\n"); n > m.contentRows() {
+		t.Fatalf("rendered lines = %d, must not exceed %d", n, m.contentRows())
 	}
 }
