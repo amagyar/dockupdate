@@ -48,5 +48,25 @@ release:
     owner: amagyar
     name: dockupdate
 
+changelog:
+  groups:
+    - title: Features
+      regexp: '^.*?(feat|perf)(\(\w+\))?!?:.+'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^.*?fix(\(\w+\))?!?:.+'
+      order: 1
+    - title: Others
+      order: 999
+  filters:
+    exclude:
+      - '^docs'
+      - '^chore'
+      - '^test'
+      - '^ci'
+      - '^style'
+      - '^refactor'
+      - '^build'
+
 snapshot:
   version_template: "{{ incpatch .Version }}-snapshot"
