@@ -3,7 +3,7 @@
 [![CI](https://github.com/amagyar/dockupdate/actions/workflows/ci.yml/badge.svg)](https://github.com/amagyar/dockupdate/actions/workflows/ci.yml)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/amagyar/dockupdate)](https://github.com/amagyar/dockupdate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9999/badge)](https://www.bestpractices.dev/projects/9999)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/13677/baseline)](https://www.bestpractices.dev/projects/13677)
 
 A terminal UI for managing containers across **Docker and Podman**: compose-aware inventory, network browsing, and interactive updates with live progress — shipped as a single binary.
 
