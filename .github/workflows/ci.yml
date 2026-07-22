@@ -57,5 +57,6 @@ jobs:
           go-version-file: go.mod
           cache: true
       - run: |
-          go test -fuzz=. -fuzztime=10s ./internal/registry/
-          go test -fuzz=. -fuzztime=10s ./internal/compose/
+          go test -fuzz=FuzzIsPinned -fuzztime=10s ./internal/registry/
+          go test -fuzz=FuzzRegistryMatches -fuzztime=10s ./internal/registry/
+          go test -fuzz=FuzzSplitConfigFiles -fuzztime=10s ./internal/compose/
