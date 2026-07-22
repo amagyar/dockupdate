@@ -29,19 +29,18 @@ checksum:
   algorithm: sha256
 
 # Keyless cosign signing (Sigstore OIDC via the GitHub Actions token):
-# uploads <artifact>.sig and <artifact>.pem for every artifact, including
-# checksums.txt. Requires the sigstore/cosign-installer step and
-# id-token: write in the release workflow.
+# uploads <artifact>.sigstore.json (bundle with signature + certificate)
+# for every artifact, including checksums.txt. Requires the
+# sigstore/cosign-installer step and id-token: write in the release
+# workflow. cosign v3 requires --bundle; the old --output-signature /
+# --output-certificate flags are gone.
 signs:
   - cmd: cosign
-    signature: "${artifact}.sig"
-    certificate: "${artifact}.pem"
+    signature: "${artifact}.sigstore.json"
     args:
       - sign-blob
-      - -y
-      - --output-certificate
-      - "${certificate}"
-      - --output-signature
+      - --yes
+      - --bundle
       - "${signature}"
       - "${artifact}"
     artifacts: all
