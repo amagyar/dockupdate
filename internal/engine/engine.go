@@ -26,7 +26,7 @@ type Client struct {
 // PingFunc probes a candidate host; it returns an error when unreachable.
 // Replaceable in tests.
 var PingFunc = func(ctx context.Context, host string) error {
-	cli, err := client.NewClientWithOpts(client.WithHost(host), client.WithAPIVersionNegotiation())
+	cli, err := client.New(client.WithHost(host))
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func Connect(ctx context.Context, e Environment) (*Client, []string, error) {
 		if err != nil {
 			continue
 		}
-		cli, err := client.NewClientWithOpts(client.WithHost(host), client.WithAPIVersionNegotiation())
+		cli, err := client.New(client.WithHost(host))
 		if err != nil {
 			continue
 		}
