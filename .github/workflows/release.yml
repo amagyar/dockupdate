@@ -25,7 +25,9 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # create the GitHub release and upload assets
+      id-token: write # OIDC for cosign keyless signing and provenance attestation
+      attestations: write # store the provenance attestation
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
@@ -38,6 +40,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           version: '~> v2'
@@ -45,6 +48,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+      - name: Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/checksums.txt
+      - name: Attach provenance to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp "${{ steps.attest.outputs.bundle-path }}" dist/provenance.intoto.jsonl
+          gh release upload "$GITHUB_REF_NAME" dist/provenance.intoto.jsonl --clobber
 
   npm:
     needs: goreleaser
@@ -63,10 +79,11 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm CLI for trusted publishing
-        run: npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
+        # trusted publishing needs npm >= 11.5.1; exact version pinned for reproducibility
+        run: npm install -g npm@12.0.1
       - name: Sync package version with tag and publish
         working-directory: npm
+        # npm version also syncs the committed package-lock.json
         run: |
           npm version --no-git-tag-version --ignore-scripts "${GITHUB_REF_NAME#v}"
-          npm install --package-lock-only --ignore-scripts
           npm publish
