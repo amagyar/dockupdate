@@ -9,11 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/jsonstream"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 )
 
 // Client wraps the Docker Engine API client. It works against any
@@ -32,7 +31,7 @@ var PingFunc = func(ctx context.Context, host string) error {
 		return err
 	}
 	defer func() { _ = cli.Close() }()
-	_, err = cli.Ping(ctx)
+	_, err = cli.Ping(ctx, client.PingOptions{})
 	return err
 }
 
@@ -71,11 +70,11 @@ func (c *Client) Info() Info { return c.info }
 func (c *Client) Close() error { return c.cli.Close() }
 
 func (c *Client) loadInfo(ctx context.Context) error {
-	ver, err := c.cli.ServerVersion(ctx)
+	ver, err := c.cli.ServerVersion(ctx, client.ServerVersionOptions{})
 	if err != nil {
 		return fmt.Errorf("query engine version: %w", err)
 	}
-	sys, sysErr := c.cli.Info(ctx)
+	sys, sysErr := c.cli.Info(ctx, client.InfoOptions{})
 
 	c.info = Info{Kind: "Docker", Version: ver.Version, Socket: c.socket}
 	for _, comp := range ver.Components {
@@ -86,27 +85,27 @@ func (c *Client) loadInfo(ctx context.Context) error {
 		}
 	}
 	if sysErr == nil {
-		c.info.OSType = sys.OSType
-		c.info.Arch = sys.Architecture
+		c.info.OSType = sys.Info.OSType
+		c.info.Arch = sys.Info.Architecture
 	}
 	return nil
 }
 
 // ListContainers returns all containers (running and stopped).
 func (c *Client) ListContainers(ctx context.Context) ([]Container, error) {
-	list, err := c.cli.ContainerList(ctx, container.ListOptions{All: true})
+	list, err := c.cli.ContainerList(ctx, client.ContainerListOptions{All: true})
 	if err != nil {
 		return nil, err
 	}
-	out := make([]Container, 0, len(list))
-	for _, s := range list {
+	out := make([]Container, 0, len(list.Items))
+	for _, s := range list.Items {
 		name := strings.TrimPrefix(strings.Join(s.Names, ", "), "/")
 		out = append(out, Container{
 			ID:      s.ID,
 			Name:    name,
 			Image:   s.Image,
 			ImageID: s.ImageID,
-			State:   s.State,
+			State:   string(s.State),
 			Labels:  s.Labels,
 		})
 	}
@@ -115,23 +114,27 @@ func (c *Client) ListContainers(ctx context.Context) ([]Container, error) {
 
 // ListNetworks returns all networks with their attached containers.
 func (c *Client) ListNetworks(ctx context.Context) ([]Network, error) {
-	list, err := c.cli.NetworkList(ctx, network.ListOptions{})
+	list, err := c.cli.NetworkList(ctx, client.NetworkListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	out := make([]Network, 0, len(list))
-	for _, s := range list {
+	out := make([]Network, 0, len(list.Items))
+	for _, s := range list.Items {
 		n := Network{ID: s.ID, Name: s.Name, Driver: s.Driver}
-		ins, err := c.cli.NetworkInspect(ctx, s.ID, network.InspectOptions{})
+		ins, err := c.cli.NetworkInspect(ctx, s.ID, client.NetworkInspectOptions{})
 		if err == nil {
-			for _, cfg := range ins.IPAM.Config {
-				if cfg.Subnet != "" {
-					n.Subnet = cfg.Subnet
+			for _, cfg := range ins.Network.IPAM.Config {
+				if cfg.Subnet.IsValid() {
+					n.Subnet = cfg.Subnet.String()
 					break
 				}
 			}
-			for id, ep := range ins.Containers {
-				n.Containers = append(n.Containers, NetworkContainer{ID: id, Name: ep.Name, IPv4: ep.IPv4Address})
+			for id, ep := range ins.Network.Containers {
+				var ipv4 string
+				if ep.IPv4Address.IsValid() {
+					ipv4 = ep.IPv4Address.String()
+				}
+				n.Containers = append(n.Containers, NetworkContainer{ID: id, Name: ep.Name, IPv4: ipv4})
 			}
 		}
 		out = append(out, n)
@@ -186,7 +189,7 @@ type Progress struct {
 // Engines that report no byte progress (Podman) still report per-layer
 // status transitions, exposed via the Layers fields.
 func (c *Client) PullImage(ctx context.Context, ref string, auth string, progress func(Progress)) error {
-	rc, err := c.cli.ImagePull(ctx, ref, image.PullOptions{RegistryAuth: auth})
+	rc, err := c.cli.ImagePull(ctx, ref, client.ImagePullOptions{RegistryAuth: auth})
 	if err != nil {
 		return err
 	}
@@ -195,7 +198,7 @@ func (c *Client) PullImage(ctx context.Context, ref string, auth string, progres
 	agg := NewLayerAggregator()
 	dec := json.NewDecoder(rc)
 	for {
-		var msg jsonmessage.JSONMessage
+		var msg jsonstream.Message
 		if err := dec.Decode(&msg); err != nil {
 			if err == io.EOF {
 				return nil
@@ -286,26 +289,28 @@ func (a *LayerAggregator) Layers() (int, int) {
 
 // InspectContainer returns the full inspect record for a container.
 func (c *Client) InspectContainer(ctx context.Context, id string) (container.InspectResponse, error) {
-	return c.cli.ContainerInspect(ctx, id)
+	res, err := c.cli.ContainerInspect(ctx, id, client.ContainerInspectOptions{})
+	return res.Container, err
 }
 
 // RecreateContainer replaces a standalone container with a new one from the
 // new image, preserving its config, host config, networks and name. The old
 // container is kept (stopped, renamed) when creation fails.
 func (c *Client) RecreateContainer(ctx context.Context, id string, newImage string) error {
-	old, err := c.cli.ContainerInspect(ctx, id)
+	ins, err := c.cli.ContainerInspect(ctx, id, client.ContainerInspectOptions{})
 	if err != nil {
 		return fmt.Errorf("inspect: %w", err)
 	}
+	old := ins.Container
 
 	name := strings.TrimPrefix(old.Name, "/")
 	backupName := fmt.Sprintf("%s-old-%d", name, time.Now().Unix())
 
 	timeout := 10
-	if err := c.cli.ContainerStop(ctx, id, container.StopOptions{Timeout: &timeout}); err != nil {
+	if _, err := c.cli.ContainerStop(ctx, id, client.ContainerStopOptions{Timeout: &timeout}); err != nil {
 		return fmt.Errorf("stop: %w", err)
 	}
-	if err := c.cli.ContainerRename(ctx, id, backupName); err != nil {
+	if _, err := c.cli.ContainerRename(ctx, id, client.ContainerRenameOptions{NewName: backupName}); err != nil {
 		return fmt.Errorf("rename old container: %w", err)
 	}
 
@@ -328,25 +333,30 @@ func (c *Client) RecreateContainer(ctx context.Context, id string, newImage stri
 
 	conf := *old.Config
 	conf.Image = newImage
-	created, err := c.cli.ContainerCreate(ctx, &conf, old.HostConfig, netConf, nil, name)
+	created, err := c.cli.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Config:           &conf,
+		HostConfig:       old.HostConfig,
+		NetworkingConfig: netConf,
+		Name:             name,
+	})
 	if err != nil {
 		// Best-effort restore of the old container's name.
-		_ = c.cli.ContainerRename(ctx, id, name)
+		_, _ = c.cli.ContainerRename(ctx, id, client.ContainerRenameOptions{NewName: name})
 		return fmt.Errorf("create: %w", err)
 	}
-	if err := c.cli.ContainerStart(ctx, created.ID, container.StartOptions{}); err != nil {
-		_ = c.cli.ContainerRemove(ctx, created.ID, container.RemoveOptions{Force: true})
-		_ = c.cli.ContainerRename(ctx, id, name)
+	if _, err := c.cli.ContainerStart(ctx, created.ID, client.ContainerStartOptions{}); err != nil {
+		_, _ = c.cli.ContainerRemove(ctx, created.ID, client.ContainerRemoveOptions{Force: true})
+		_, _ = c.cli.ContainerRename(ctx, id, client.ContainerRenameOptions{NewName: name})
 		return fmt.Errorf("start: %w", err)
 	}
 	for _, netName := range extraNetworks {
-		if err := c.cli.NetworkConnect(ctx, netName, created.ID, &network.EndpointSettings{}); err != nil {
+		if _, err := c.cli.NetworkConnect(ctx, netName, client.NetworkConnectOptions{Container: created.ID, EndpointConfig: &network.EndpointSettings{}}); err != nil {
 			return fmt.Errorf("connect network %s: %w", netName, err)
 		}
 	}
 	// Old container stays present (stopped) for rollback; remove it only
 	// once the replacement is healthy enough to keep running.
-	if err := c.cli.ContainerRemove(ctx, id, container.RemoveOptions{}); err != nil {
+	if _, err := c.cli.ContainerRemove(ctx, id, client.ContainerRemoveOptions{}); err != nil {
 		return fmt.Errorf("remove old container: %w", err)
 	}
 	return nil
@@ -354,11 +364,11 @@ func (c *Client) RecreateContainer(ctx context.Context, id string, newImage stri
 
 // ImageID returns the image ID a container is currently using.
 func (c *Client) ImageID(ctx context.Context, containerID string) (string, error) {
-	ins, err := c.cli.ContainerInspect(ctx, containerID)
+	ins, err := c.cli.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 	if err != nil {
 		return "", err
 	}
-	return ins.Image, nil
+	return ins.Container.Image, nil
 }
 
 // ImageIDForRef returns the ID of the image a reference resolves to.
@@ -372,6 +382,6 @@ func (c *Client) ImageIDForRef(ctx context.Context, imageRef string) (string, er
 
 // RemoveImage deletes an image by ID (best effort, used by --prune).
 func (c *Client) RemoveImage(ctx context.Context, imageID string) error {
-	_, err := c.cli.ImageRemove(ctx, imageID, image.RemoveOptions{})
+	_, err := c.cli.ImageRemove(ctx, imageID, client.ImageRemoveOptions{})
 	return err
 }

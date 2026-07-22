@@ -12,9 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/moby/moby/api/types/jsonstream"
+	"github.com/moby/moby/client"
 
 	"github.com/amagyar/dockupdate/internal/engine"
 )
@@ -37,7 +36,7 @@ func TestLivePullStreamDebug(t *testing.T) {
 	}
 	defer cli.Close()
 
-	rc, err := cli.ImagePull(ctx, "docker.io/library/alpine:3.18", image.PullOptions{})
+	rc, err := cli.ImagePull(ctx, "docker.io/library/alpine:3.18", client.ImagePullOptions{})
 	if err != nil {
 		t.Fatalf("pull: %v", err)
 	}
@@ -52,7 +51,7 @@ func TestLivePullStreamDebug(t *testing.T) {
 			}
 			t.Fatalf("decode: %v", err)
 		}
-		var msg jsonmessage.JSONMessage
+		var msg jsonstream.Message
 		_ = json.Unmarshal([]byte(mustMarshal(raw)), &msg)
 		t.Logf("id=%q status=%q progress=%+v raw=%s", msg.ID, msg.Status, msg.Progress, mustMarshal(raw))
 	}
@@ -62,7 +61,6 @@ func mustMarshal(v any) string {
 	b, _ := json.Marshal(v)
 	return string(b)
 }
-
 
 func TestLiveConnect(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
