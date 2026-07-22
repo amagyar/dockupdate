@@ -79,10 +79,11 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm CLI for trusted publishing
-        run: npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
+        # trusted publishing needs npm >= 11.5.1; exact version pinned for reproducibility
+        run: npm install -g npm@12.0.1
       - name: Sync package version with tag and publish
         working-directory: npm
+        # npm version also syncs the committed package-lock.json
         run: |
           npm version --no-git-tag-version --ignore-scripts "${GITHUB_REF_NAME#v}"
-          npm install --package-lock-only --ignore-scripts
           npm publish
