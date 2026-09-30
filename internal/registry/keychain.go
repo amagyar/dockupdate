@@ -81,17 +81,22 @@ func readAuthFile(path, registry string) authn.Authenticator {
 }
 
 // registryMatches handles the various ways docker.io can be recorded.
+// Both sides are normalized so the relation is symmetric: an entry that
+// matches a registry implies the registry also matches itself.
 func registryMatches(entryHost, registry string) bool {
-	h := strings.TrimPrefix(entryHost, "https://")
+	return normalizeRegistryHost(entryHost) == normalizeRegistryHost(registry)
+}
+
+// normalizeRegistryHost strips any scheme and trailing slashes and maps the
+// docker.io aliases to their canonical registry host.
+func normalizeRegistryHost(host string) string {
+	h := strings.TrimPrefix(host, "https://")
 	h = strings.TrimPrefix(h, "http://")
-	h = strings.TrimSuffix(h, "/")
-	if h == "index.docker.io/v1" {
-		h = "index.docker.io"
+	h = strings.TrimRight(h, "/")
+	if h == "index.docker.io/v1" || h == "docker.io" {
+		return "index.docker.io"
 	}
-	if h == "docker.io" {
-		h = "index.docker.io"
-	}
-	return h == registry
+	return h
 }
 
 // AuthHeader builds the base64 X-Registry-Auth value for engine pulls,
